@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>オンドク</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7faf8;
+      --bg-warm: #fff8ed;
+      --panel: #ffffff;
+      --text: #24322c;
+      --muted: #65736d;
+      --line: #dce7e1;
+      --primary: #3d7b67;
+      --primary-hover: #336a59;
+      --secondary: #eef5f2;
+      --secondary-hover: #e2eee9;
+      --focus: #9bc8bb;
+      --shadow: 0 22px 70px rgba(68, 92, 80, 0.13);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 250, 248, 0.96)),
+        var(--bg);
+      transition: background-color 0.8s ease;
+    }
+
+    body.soon {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 248, 237, 0.98)),
+        var(--bg-warm);
+    }
+
+    main {
+      width: min(1100px, calc(100vw - 40px));
+      min-height: 100vh;
+      margin: 0 auto;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      align-items: center;
+      gap: clamp(18px, 4vh, 42px);
+      padding: clamp(22px, 4vh, 46px) 0;
+    }
+
+    header {
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(3rem, 8vw, 7.5rem);
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .timer-area {
+      width: 100%;
+      display: grid;
+      justify-items: center;
+      gap: clamp(18px, 4vh, 36px);
+    }
+
+    .status {
+      min-height: 1.6em;
+      color: var(--muted);
+      font-size: clamp(1.35rem, 3vw, 2.5rem);
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .time-display {
+      width: min(860px, 100%);
+      padding: clamp(26px, 5vw, 56px) clamp(16px, 4vw, 44px);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.84);
+      box-shadow: var(--shadow);
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(6.7rem, 20vw, 16rem);
+      font-weight: 800;
+      line-height: 0.95;
+      text-align: center;
+    }
+
+    .controls {
+      width: min(760px, 100%);
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: clamp(12px, 2vw, 20px);
+    }
+
+    button {
+      min-height: clamp(64px, 9vh, 88px);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font: inherit;
+      font-size: clamp(1.15rem, 2.5vw, 1.8rem);
+      font-weight: 800;
+      color: var(--text);
+      background: var(--secondary);
+      cursor: pointer;
+      transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+    }
+
+    button:hover {
+      background: var(--secondary-hover);
+      border-color: #cbdcd4;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button:focus-visible {
+      outline: 4px solid var(--focus);
+      outline-offset: 4px;
+    }
+
+    .primary {
+      color: #ffffff;
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .primary:hover {
+      background: var(--primary-hover);
+      border-color: var(--primary-hover);
+    }
+
+    footer {
+      min-height: 1.4em;
+      color: var(--muted);
+      font-size: clamp(0.95rem, 1.6vw, 1.25rem);
+      text-align: center;
+    }
+
+    @media (max-width: 650px) {
+      main {
+        width: min(100vw - 28px, 560px);
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .time-display {
+        font-size: clamp(5rem, 25vw, 8.5rem);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>オンドク</h1>
+    </header>
+
+    <section class="timer-area" aria-labelledby="timer-status">
+      <div id="timer-status" class="status" aria-live="polite">準備できました</div>
+      <div id="time-display" class="time-display" aria-live="polite" aria-label="残り時間 1分30秒">1:30</div>
+      <div class="controls" aria-label="タイマー操作">
+        <button id="start-button" class="primary" type="button">スタート</button>
+        <button id="pause-button" type="button">一時停止</button>
+        <button id="reset-button" type="button">リセット</button>
+      </div>
+    </section>
+
+    <footer>スペースキーでスタート・一時停止、Rキーでリセット</footer>
+  </main>
+
+  <script>
+    const TOTAL_SECONDS = 90;
+    const WARNING_SECONDS = 10;
+
+    const timeDisplay = document.getElementById("time-display");
+    const statusDisplay = document.getElementById("timer-status");
+    const startButton = document.getElementById("start-button");
+    const pauseButton = document.getElementById("pause-button");
+    const resetButton = document.getElementById("reset-button");
+
+    let remainingSeconds = TOTAL_SECONDS;
+    let timerId = null;
+    let endTime = 0;
+    let isRunning = false;
+    let warningPlayed = false;
+    let finishPlayed = false;
+    let audioContext = null;
+
+    // ブラウザの自動再生制限に合わせて、ユーザー操作後に音声機能を準備します。
+    function prepareAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+    }
+
+    function formatTime(seconds) {
+      const minutes = Math.floor(seconds / 60);
+      const rest = seconds % 60;
+      return `${minutes}:${String(rest).padStart(2, "0")}`;
+    }
+
+    function updateDisplay() {
+      timeDisplay.textContent = formatTime(remainingSeconds);
+      timeDisplay.setAttribute("aria-label", `残り時間 ${formatTime(remainingSeconds)}`);
+      document.body.classList.toggle("soon", remainingSeconds <= WARNING_SECONDS && remainingSeconds > 0);
+
+      if (remainingSeconds === 0) {
+        statusDisplay.textContent = "音読終了";
+      } else if (isRunning) {
+        statusDisplay.textContent = "音読中";
+      } else if (remainingSeconds < TOTAL_SECONDS) {
+        statusDisplay.textContent = "一時停止中";
+      } else {
+        statusDisplay.textContent = "準備できました";
+      }
+    }
+
+    // Web Audio APIで、控えめな音量の柔らかいチャイムを合成します。
+    function playTone(frequency, startDelay, duration, volume) {
+      if (!audioContext) return;
+
+      const startAt = audioContext.currentTime + startDelay;
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(frequency, startAt);
+
+      gain.gain.setValueAtTime(0.0001, startAt);
+      gain.gain.exponentialRampToValueAtTime(volume, startAt + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.start(startAt);
+      oscillator.stop(startAt + duration + 0.05);
+    }
+
+    function playWarningSound() {
+      playTone(523.25, 0, 0.32, 0.035);
+      playTone(659.25, 0.18, 0.42, 0.03);
+    }
+
+    function playFinishSound() {
+      playTone(523.25, 0, 0.3, 0.04);
+      playTone(659.25, 0.22, 0.3, 0.04);
+      playTone(783.99, 0.44, 0.55, 0.038);
+    }
+
+    function finishTimer() {
+      stopTicker();
+      remainingSeconds = 0;
+      isRunning = false;
+
+      if (!finishPlayed) {
+        finishPlayed = true;
+        playFinishSound();
+      }
+
+      updateDisplay();
+    }
+
+    // performance.now()を基準に残り時間を計算し、setIntervalのズレを補正します。
+    function tick() {
+      const millisecondsLeft = Math.max(0, endTime - performance.now());
+      remainingSeconds = Math.ceil(millisecondsLeft / 1000);
+
+      if (remainingSeconds <= WARNING_SECONDS && remainingSeconds > 0 && !warningPlayed) {
+        warningPlayed = true;
+        playWarningSound();
+      }
+
+      if (millisecondsLeft <= 0) {
+        finishTimer();
+        return;
+      }
+
+      updateDisplay();
+    }
+
+    function stopTicker() {
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+    }
+
+    function startTimer() {
+      if (isRunning || remainingSeconds <= 0) return;
+
+      prepareAudio();
+      isRunning = true;
+      endTime = performance.now() + remainingSeconds * 1000;
+      tick();
+      timerId = setInterval(tick, 120);
+    }
+
+    function pauseTimer() {
+      if (!isRunning) return;
+
+      tick();
+      stopTicker();
+      isRunning = false;
+      updateDisplay();
+    }
+
+    function resetTimer() {
+      stopTicker();
+      remainingSeconds = TOTAL_SECONDS;
+      isRunning = false;
+      warningPlayed = false;
+      finishPlayed = false;
+      updateDisplay();
+    }
+
+    function toggleStartPause() {
+      if (isRunning) {
+        pauseTimer();
+      } else {
+        startTimer();
+      }
+    }
+
+    startButton.addEventListener("click", startTimer);
+    pauseButton.addEventListener("click", pauseTimer);
+    resetButton.addEventListener("click", resetTimer);
+
+    document.addEventListener("keydown", (event) => {
+      const activeTag = document.activeElement.tagName.toLowerCase();
+      const isTyping = activeTag === "input" || activeTag === "textarea";
+      if (isTyping) return;
+
+      if (event.code === "Space") {
+        event.preventDefault();
+        toggleStartPause();
+      }
+
+      if (event.key.toLowerCase() === "r") {
+        event.preventDefault();
+        resetTimer();
+      }
+    });
+
+    updateDisplay();
+  </script>
+</body>
+</html>
